@@ -1,0 +1,218 @@
+@import 'tailwindcss';
+
+:root {
+  --color-aura-bg: #0f0d13;
+  --color-aura-bg-light: #1a1625;
+  --color-aura-bg-card: #16131d;
+  --color-aura-primary: #cfbcff;
+  --color-aura-secondary: #9f7aea;
+  --color-aura-accent: #7c3aed;
+  --color-aura-glass: rgba(255, 255, 255, 0.05);
+  --color-aura-glass-light: rgba(255, 255, 255, 0.08);
+  --color-aura-border: rgba(255, 255, 255, 0.08);
+  --color-aura-border-light: rgba(255, 255, 255, 0.12);
+  --color-aura-text: #ffffff;
+  --color-aura-text-secondary: rgba(255, 255, 255, 0.7);
+  --color-aura-text-muted: rgba(255, 255, 255, 0.4);
+  --color-aura-glow: rgba(159, 122, 234, 0.4);
+  --color-aura-glow-soft: rgba(159, 122, 234, 0.15);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0f0d13;
+  color: #ffffff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Selection */
+::selection {
+  background: rgba(159, 122, 234, 0.3);
+  color: white;
+}
+
+/* Glass morphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient border */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(159, 122, 234, 0.3), transparent 40%, rgba(207, 188, 255, 0.2));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* Neon glow */
+.neon-glow {
+  box-shadow: 0 0 20px rgba(159, 122, 234, 0.3), 0 0 60px rgba(159, 122, 234, 0.1);
+}
+
+.neon-glow-sm {
+  box-shadow: 0 0 10px rgba(159, 122, 234, 0.2), 0 0 30px rgba(159, 122, 234, 0.05);
+}
+
+.neon-text {
+  text-shadow: 0 0 20px rgba(207, 188, 255, 0.5), 0 0 40px rgba(159, 122, 234, 0.3);
+}
+
+/* Animated gradient background orbs */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -50px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
+  75% { transform: translate(50px, 30px) scale(1.05); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float 20s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 25s ease-in-out infinite 5s;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(1) { animation: typing-dot 1.4s infinite 0s; }
+.typing-dot:nth-child(2) { animation: typing-dot 1.4s infinite 0.2s; }
+.typing-dot:nth-child(3) { animation: typing-dot 1.4s infinite 0.4s; }
+
+/* FullCalendar theme overrides */
+.fc {
+  --fc-bg-color: transparent;
+  --fc-border-color: rgba(255, 255, 255, 0.06);
+  --fc-today-bg-color: rgba(159, 122, 234, 0.08);
+  --fc-neutral-bg-color: rgba(255, 255, 255, 0.03);
+  --fc-page-bg-color: transparent;
+  --fc-highlight-color: rgba(159, 122, 234, 0.1);
+}
+
+.fc .fc-button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: white !important;
+  font-weight: 500;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s;
+}
+
+.fc .fc-button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.fc .fc-button-active {
+  background: rgba(159, 122, 234, 0.2) !important;
+  border-color: rgba(159, 122, 234, 0.3) !important;
+}
+
+.fc .fc-col-header-cell {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 0;
+}
+
+.fc .fc-daygrid-day-number {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  padding: 8px;
+}
+
+.fc .fc-toolbar-title {
+  color: white;
+  font-weight: 700;
+  font-size: 1.25rem !important;
+}
+
+.fc .fc-event {
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+}
+
+/* Recharts theme overrides */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255, 255, 255, 0.04) !important;
+}
+
+.recharts-text {
+  fill: rgba(255, 255, 255, 0.4) !important;
+  font-size: 11px;
+}
