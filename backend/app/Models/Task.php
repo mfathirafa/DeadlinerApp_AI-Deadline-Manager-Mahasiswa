@@ -2,28 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Task extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'user_id',
         'course_id',
         'title',
         'description',
         'deadline',
-        'priority',
-        'status',
+        'difficulty',
+        'estimated_hours',
         'progress',
+        'status',
+        'priority',
+        'ai_priority_score',
         'ai_analysis',
+        'ai_suggested_start',
     ];
 
     protected $casts = [
-        'deadline' => 'datetime',
-        'progress' => 'integer',
+        'user_id'          => 'integer', 
+        'course_id'        => 'integer', 
+        'deadline'         => 'datetime',
+        'ai_suggested_start' => 'date',
     ];
 
     public function user()
@@ -34,5 +37,18 @@ class Task extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function getDaysRemainingAttribute(): int
+    {
+        return now()->diffInDays($this->deadline, false);
+    }
+
+    // Auto set status overdue kalau deadline sudah lewat
+    public function checkAndUpdateOverdue(): void
+    {
+        if ($this->status !== 'completed' && $this->deadline->isPast()) {
+            $this->update(['status' => 'overdue']);
+        }
     }
 }

@@ -8,94 +8,72 @@ use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
-    public function index(Request $request)
-    {
-        $courses = Course::where('user_id', $request->user()->id)
-            ->withCount('tasks')
-            ->withCount(['tasks as completed_count' => function ($query) {
-                $query->where('status', 'completed');
-            }])
-            ->get();
-
-        $formatted = $courses->map(function ($course) {
-            return [
-                'id' => $course->id,
-                'name' => $course->name,
-                'code' => $course->code,
-                'color' => $course->color,
-                'task_count' => (int) $course->tasks_count,
-                'completed_count' => (int) $course->completed_count,
-                'created_at' => $course->created_at->toIso8601String(),
-                'updated_at' => $course->updated_at->toIso8601String(),
-            ];
-        });
-
-        return response()->json($formatted);
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50',
-            'color' => 'required|string|max:20',
+            'name'  => 'required|string|max:255',
+            'code'  => 'nullable|string|max:20',
+            'color' => 'nullable|string|max:20',
         ]);
 
-        $course = Course::create([
-            'user_id' => $request->user()->id,
-            'name' => $validated['name'],
-            'code' => $validated['code'],
-            'color' => $validated['color'],
-        ]);
+        $course = $request->user()->courses()->create($validated);
 
-        return response()->json([
-            'id' => $course->id,
-            'name' => $course->name,
-            'code' => $course->code,
-            'color' => $course->color,
-            'task_count' => 0,
-            'completed_count' => 0,
-            'created_at' => $course->created_at->toIso8601String(),
-            'updated_at' => $course->updated_at->toIso8601String(),
-        ], 201);
+        return response()->json($course, 201); // ← langsung object
     }
 
-    public function update(Request $request, $id)
+
+    public function update(Request $request, Course $course)
     {
-        $course = Course::where('user_id', $request->user()->id)->findOrFail($id);
+        if ($course->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
+        }
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'code' => 'sometimes|required|string|max:50',
-            'color' => 'sometimes|required|string|max:20',
+            'name'  => 'sometimes|string|max:255',
+            'code'  => 'nullable|string|max:20',
+            'color' => 'nullable|string|max:20',
         ]);
 
         $course->update($validated);
 
-        $course->loadCount('tasks');
-        $course->loadCount(['tasks as completed_count' => function ($query) {
-            $query->where('status', 'completed');
-        }]);
-
-        return response()->json([
-            'id' => $course->id,
-            'name' => $course->name,
-            'code' => $course->code,
-            'color' => $course->color,
-            'task_count' => (int) $course->tasks_count,
-            'completed_count' => (int) $course->completed_count,
-            'created_at' => $course->created_at->toIso8601String(),
-            'updated_at' => $course->updated_at->toIso8601String(),
-        ]);
+        return response()->json($course); // ← langsung object
     }
 
-    public function destroy(Request $request, $id)
+    public function index(Request $request)
     {
-        $course = Course::where('user_id', $request->user()->id)->findOrFail($id);
+        $courses = $request->user()
+            ->courses()
+            ->withCount([
+                'tasks',
+                'tasks as completed_count' => fn($q) => $q->where('status', 'completed')
+            ])
+            ->latest()
+            ->get()
+            ->map(function ($course) {
+                $course->task_count = $course->tasks_count;
+                return $course;
+            });
+
+        return response()->json($courses); // ← langsung array, tanpa wrapper
+    }
+
+    public function show(Request $request, Course $course)
+    {
+        if ($course->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
+        }
+
+        return response()->json($course); // ← langsung object
+    }
+
+    public function destroy(Request $request, Course $course)
+    {
+        if ($course->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
+        }
+
         $course->delete();
 
-        return response()->json([
-            'message' => 'Course deleted successfully.'
-        ]);
+        return response()->json(['message' => 'Mata kuliah berhasil dihapus']);
     }
 }

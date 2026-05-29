@@ -20,20 +20,21 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard Aggregation
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // Courses CRUD
-    Route::get('/courses', [CourseController::class, 'index']);
-    Route::post('/courses', [CourseController::class, 'store']);
-    Route::put('/courses/{id}', [CourseController::class, 'update']);
-    Route::delete('/courses/{id}', [CourseController::class, 'destroy']);
-
     // Tasks CRUD & Custom Actions
     Route::get('/tasks', [TaskController::class, 'index']);
     Route::post('/tasks', [TaskController::class, 'store']);
-    Route::put('/tasks/{id}', [TaskController::class, 'update']);
-    Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
-    Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
-    Route::post('/tasks/{id}/analyze', [TaskController::class, 'analyze']);
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);       // ← tambah ini
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+    Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus']);
+    Route::post('/tasks/{task}/analyze', [TaskController::class, 'analyze']);
 
+    // Courses CRUD
+    Route::get('/courses', [CourseController::class, 'index']);
+    Route::post('/courses', [CourseController::class, 'store']);
+    Route::get('/courses/{course}', [CourseController::class, 'show']); // ← tambah ini
+    Route::put('/courses/{course}', [CourseController::class, 'update']);
+    Route::delete('/courses/{course}', [CourseController::class, 'destroy']);
     // Notifications Endpoints
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read', [NotificationController::class, 'markReadBody']);
