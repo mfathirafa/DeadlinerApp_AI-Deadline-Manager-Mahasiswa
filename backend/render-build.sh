@@ -13,4 +13,4 @@ php artisan view:cache
 echo "=== Running migrations ==="
 php artisan migrate --force
 
-echo "=== Build complete ==="
+echo "=== Build complete ===" #

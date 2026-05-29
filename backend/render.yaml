@@ -51,7 +51,7 @@ services:
       - key: LOG_LEVEL
         value: warning
       - key: GROQ_API_KEY
-        value: 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
+        value: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
 
@@ -59,4 +59,4 @@ databases:
   - name: deadliner-mysql
     databaseName: deadliner_app_ai
     user: deadliner_user
-    plan: free
+    plan: free #
