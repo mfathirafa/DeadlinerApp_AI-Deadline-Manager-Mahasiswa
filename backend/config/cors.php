@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['*', 'https://deadliner-app-ai-deadline-manager-m.vercel.app', 'https://deadlinerapp-ai-deadline-manager.onrender.com'],
 
     'allowed_origins_patterns' => [],
 
