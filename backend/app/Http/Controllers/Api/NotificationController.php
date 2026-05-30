@@ -14,15 +14,18 @@ class NotificationController extends Controller
     {
         $notifications = $request->user()->notifications;
 
-        return response()->json($notifications->map(function ($notif) {
-            return [
-                'id' => $notif->id,
-                'type' => $notif->type,
-                'data' => is_string($notif->data) ? json_decode($notif->data, true) : $notif->data,
-                'read_at' => $notif->read_at ? $notif->read_at->toIso8601String() : null,
-                'created_at' => $notif->created_at->toIso8601String(),
-            ];
-        }));
+        return response()->json([
+            'success' => true,
+            'data' => $notifications->map(function ($notif) {
+                return [
+                    'id' => $notif->id,
+                    'type' => $notif->type,
+                    'data' => is_string($notif->data) ? json_decode($notif->data, true) : $notif->data,
+                    'read_at' => $notif->read_at ? $notif->read_at->toIso8601String() : null,
+                    'created_at' => $notif->created_at->toIso8601String(),
+                ];
+            })
+        ]);
     }
 
     /**
@@ -33,7 +36,12 @@ class NotificationController extends Controller
         $notification = $request->user()->notifications()->findOrFail($id);
         $notification->markAsRead();
 
-        return response()->json(['message' => 'Notification marked as read.']);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'message' => 'Notification marked as read.'
+            ]
+        ]);
     }
 
     /**
@@ -42,13 +50,18 @@ class NotificationController extends Controller
     public function markReadBody(Request $request)
     {
         $validated = $request->validate([
-            'id' => 'required|string|uuid',
+            'id' => 'required|string',
         ]);
 
         $notification = $request->user()->notifications()->findOrFail($validated['id']);
         $notification->markAsRead();
 
-        return response()->json(['message' => 'Notification marked as read.']);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'message' => 'Notification marked as read.'
+            ]
+        ]);
     }
 
     /**
@@ -58,6 +71,11 @@ class NotificationController extends Controller
     {
         $request->user()->unreadNotifications->markAsRead();
 
-        return response()->json(['message' => 'All notifications marked as read.']);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'message' => 'All notifications marked as read.'
+            ]
+        ]);
     }
 }

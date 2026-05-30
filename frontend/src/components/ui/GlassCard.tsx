@@ -15,11 +15,11 @@ export default function GlassCard({ children, className = '', hover = true, glow
   return (
     <motion.div
       className={`
-        relative overflow-hidden rounded-2xl
+        relative overflow-hidden rounded-[20px]
         bg-white/[0.05] backdrop-blur-xl
         border border-white/[0.08]
         ${glow ? 'shadow-[0_0_30px_rgba(159,122,234,0.15)]' : ''}
-        ${gradient ? 'before:absolute before:inset-0 before:rounded-2xl before:p-[1px] before:bg-gradient-to-br before:from-purple-500/20 before:via-transparent before:to-violet-500/20 before:-z-10' : ''}
+        ${gradient ? 'before:absolute before:inset-0 before:rounded-[20px] before:p-[1px] before:bg-gradient-to-br before:from-purple-500/20 before:via-transparent before:to-violet-500/20 before:-z-10' : ''}
         ${className}
       `}
       whileHover={hover ? { 
@@ -31,7 +31,7 @@ export default function GlassCard({ children, className = '', hover = true, glow
       {...props}
     >
       {gradient && (
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/[0.08] via-transparent to-violet-500/[0.05] pointer-events-none" />
+        <div className="absolute inset-0 rounded-[20px] bg-gradient-to-br from-purple-500/[0.08] via-transparent to-violet-500/[0.05] pointer-events-none" />
       )}
       {children}
     </motion.div>

@@ -39,8 +39,8 @@ class TaskCrudTest extends TestCase
         $response = $this->actingAs($user1, 'sanctum')->getJson('/api/tasks');
 
         $response->assertStatus(200)
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.title', 'User One Task');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'User One Task');
     }
 
     public function test_user_can_create_task()
@@ -57,7 +57,7 @@ class TaskCrudTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('title', 'New Task Title');
+            ->assertJsonPath('data.title', 'New Task Title');
 
         $this->assertDatabaseHas('tasks', ['title' => 'New Task Title', 'user_id' => $user->id]);
     }
@@ -81,8 +81,8 @@ class TaskCrudTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('title', 'Updated Title')
-            ->assertJsonPath('progress', 50);
+            ->assertJsonPath('data.title', 'Updated Title')
+            ->assertJsonPath('data.progress', 50);
     }
 
     public function test_user_can_patch_task_status()
@@ -102,8 +102,8 @@ class TaskCrudTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('status', 'completed')
-            ->assertJsonPath('progress', 100);
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.progress', 100);
     }
 
     public function test_user_can_run_ai_task_analysis()
@@ -121,7 +121,7 @@ class TaskCrudTest extends TestCase
         $response = $this->actingAs($user, 'sanctum')->postJson("/api/tasks/{$task->id}/analyze");
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['ai_analysis']);
+            ->assertJsonStructure(['data' => ['ai_analysis']]);
 
         $this->assertDatabaseHas('tasks', ['id' => $task->id]);
         $this->assertNotNull(Task::find($task->id)->ai_analysis);

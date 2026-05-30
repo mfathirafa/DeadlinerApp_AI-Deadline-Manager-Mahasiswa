@@ -28,8 +28,11 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
-            'token' => $token,
+            'success' => true,
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+            ]
         ], 201);
     }
 
@@ -40,18 +43,25 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (!Auth::attempt($validated)) {
+        if (!Auth::attempt([
+            'email' => $request->email,
+            'password' => $request->password
+        ])) {
             return response()->json([
-                'message' => 'Invalid login credentials.'
+                'success' => false,
+                'message' => 'Email atau password salah'
             ], 401);
         }
 
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        $user = User::where('email', $request->email)->first();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
-            'token' => $token,
+            'success' => true,
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+            ]
         ]);
     }
 
@@ -60,12 +70,18 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully.'
+            'success' => true,
+            'data' => [
+                'message' => 'Logged out successfully.'
+            ]
         ]);
     }
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()
+        ]);
     }
 }

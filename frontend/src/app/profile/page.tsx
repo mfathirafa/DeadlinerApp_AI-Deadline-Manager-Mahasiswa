@@ -139,14 +139,12 @@ export default function ProfilePage() {
                     label="Name"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    icon={<User className="w-4 h-4" />}
                   />
                   <Input
                     label="Email"
                     type="email"
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
-                    icon={<Mail className="w-4 h-4" />}
                   />
                   <div className="flex gap-2">
                     <Button size="sm" glow icon={<Save className="w-3.5 h-3.5" />}
@@ -160,10 +158,10 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-white">{user?.name || 'User'}</h2>
+                  <h2 className="text-xl font-bold text-white">{user?.name || ''}</h2>
                   <p className="text-sm text-white/50 flex items-center gap-1.5 justify-center sm:justify-start mt-1">
                     <Mail className="w-3.5 h-3.5" />
-                    {user?.email || 'user@email.com'}
+                    {user?.email || ''}
                   </p>
                   <p className="text-xs text-white/30 flex items-center gap-1.5 justify-center sm:justify-start mt-1">
                     <Calendar className="w-3 h-3" />

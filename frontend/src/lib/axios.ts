@@ -22,9 +22,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle 401
+// Response interceptor - handle 401 & unpack standardized format
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && response.data.success === true && response.data.data !== undefined) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {

@@ -20,7 +20,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['token', 'user' => ['id', 'name', 'email']]);
+            ->assertJsonStructure(['data' => ['token', 'user' => ['id', 'name', 'email']]]);
 
         $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
     }
@@ -58,7 +58,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['token', 'user']);
+            ->assertJsonStructure(['data' => ['token', 'user']]);
     }
 
     public function test_user_can_fetch_authenticated_me_details()
@@ -72,6 +72,6 @@ class AuthApiTest extends TestCase
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/auth/me');
 
         $response->assertStatus(200)
-            ->assertJsonPath('email', $user->email);
+            ->assertJsonPath('data.email', $user->email);
     }
 }

@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
 import { useCreateTask } from '@/hooks/useTasks';
@@ -11,7 +12,7 @@ import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 
 export default function NewTaskModal() {
-  const { newTaskModalOpen, closeNewTaskModal } = useUIStore();
+  const { newTaskModalOpen, closeNewTaskModal, prefilledDeadline } = useUIStore();
   const createTask = useCreateTask();
   const { data: courses } = useCourses();
 
@@ -21,24 +22,44 @@ export default function NewTaskModal() {
   const [priority, setPriority] = useState('medium');
   const [deadline, setDeadline] = useState('');
 
+  useEffect(() => {
+    if (newTaskModalOpen && prefilledDeadline) {
+      // Format prefilledDate (YYYY-MM-DD) to HTML datetime-local format (YYYY-MM-DDTHH:MM)
+      // Usually dateStr from calendar is YYYY-MM-DD. Let's append T09:00 as default time.
+      if (prefilledDeadline.includes('T')) {
+        setDeadline(prefilledDeadline);
+      } else {
+        setDeadline(`${prefilledDeadline}T09:00`);
+      }
+    } else if (newTaskModalOpen) {
+      setDeadline('');
+    }
+  }, [newTaskModalOpen, prefilledDeadline]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await createTask.mutateAsync({
-      title,
-      description,
-      course_id: courseId ? parseInt(courseId) : undefined,
-      priority: priority as 'low' | 'medium' | 'high' | 'critical',
-      deadline,
-    });
+    try {
+      await createTask.mutateAsync({
+        title,
+        description,
+        course_id: courseId ? parseInt(courseId) : undefined,
+        priority: priority as 'low' | 'medium' | 'high' | 'critical',
+        deadline,
+      });
 
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setCourseId('');
-    setPriority('medium');
-    setDeadline('');
-    closeNewTaskModal();
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setCourseId('');
+      setPriority('medium');
+      setDeadline('');
+      closeNewTaskModal();
+    } catch (error: any) {
+      console.error('Failed to create task:', error);
+      // The error is already handled in useTasks hook's onError with a toast,
+      // but we can add specific error handling here if we want.
+    }
   };
 
   const courseOptions = [

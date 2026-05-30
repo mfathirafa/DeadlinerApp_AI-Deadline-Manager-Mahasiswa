@@ -8,6 +8,21 @@ jest.mock('@/hooks/useAuth', () => ({
   }),
 }));
 
+// Mock useTasks and useCourses
+jest.mock('@/hooks/useTasks', () => ({
+  useTasks: () => ({
+    data: [],
+    isLoading: false,
+  }),
+}));
+
+jest.mock('@/hooks/useCourses', () => ({
+  useCourses: () => ({
+    data: [],
+    isLoading: false,
+  }),
+}));
+
 // Mock useDashboard
 jest.mock('@/hooks/useDashboard', () => ({
   useDashboard: () => ({
@@ -20,9 +35,6 @@ jest.mock('@/hooks/useDashboard', () => ({
         completion_rate: 40,
         focus_score: 90,
       },
-      productivity_data: [
-        { date: 'Mon', tasks_completed: 1, focus_hours: 2 },
-      ],
       recent_tasks: [
         { id: 1, title: 'Sample Task Title', priority: 'high', progress: 50, deadline: '2026-06-24T12:00:00Z' },
       ],
@@ -35,15 +47,23 @@ jest.mock('@/hooks/useDashboard', () => ({
     },
     isLoading: false,
   }),
+  useProductivity: () => ({
+    data: {
+      timeline: [
+        { date: '2026-05-23', created: 3, completed: 1, overdue: 0 }
+      ]
+    },
+    isLoading: false,
+  }),
 }));
 
 describe('DashboardPage', () => {
   it('renders stats card widgets and greeting text', () => {
     render(<DashboardPage />);
 
-    expect(screen.getByText(/good morning|good afternoon|good evening/i)).toBeInTheDocument();
+    expect(screen.getByText(/good morning|good afternoon|good evening|good night/i)).toBeInTheDocument();
     expect(screen.getByText(/Ardhian/i)).toBeInTheDocument();
-    expect(screen.getByText('Total Tasks')).toBeInTheDocument();
+    expect(screen.getByText('Total Tugas')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 

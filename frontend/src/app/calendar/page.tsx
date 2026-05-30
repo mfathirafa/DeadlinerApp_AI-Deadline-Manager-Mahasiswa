@@ -1,14 +1,20 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, CheckCircle2, Plus } from 'lucide-react';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { useTasks } from '@/hooks/useTasks';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
+import ProgressBar from '@/components/ui/ProgressBar';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { formatDeadline, getDeadlineColor } from '@/lib/utils';
 import { Task } from '@/types';
+import { useUIStore } from '@/stores/uiStore';
+import Button from '@/components/ui/Button';
+import EditTaskModal from '@/components/tasks/EditTaskModal';
+import toast from 'react-hot-toast';
 
 const priorityColors: Record<string, { bg: string; border: string; text: string }> = {
   critical: { bg: '#ef444430', border: '#ef4444', text: '#fca5a5' },
@@ -17,7 +23,13 @@ const priorityColors: Record<string, { bg: string; border: string; text: string 
   low: { bg: '#22c55e30', border: '#22c55e', text: '#86efac' },
 };
 
-function CalendarWidget({ tasks }: { tasks: Task[] }) {
+interface CalendarWidgetProps {
+  tasks: Task[];
+  onDateClick: (dateStr: string) => void;
+  onEventClick: (task: Task) => void;
+}
+
+function CalendarWidget({ tasks, onDateClick, onEventClick }: CalendarWidgetProps) {
   const [CalendarComponent, setCalendarComponent] = useState<any>(null);
   const [plugins, setPlugins] = useState<any[]>([]);
 
@@ -82,12 +94,53 @@ function CalendarWidget({ tasks }: { tasks: Task[] }) {
         minute: '2-digit' as const,
         hour12: false,
       }}
+      dateClick={(info: any) => {
+        onDateClick(info.dateStr);
+      }}
+      eventClick={(info: any) => {
+        const taskId = info.event.id;
+        const clickedTask = tasks.find((t) => String(t.id) === String(taskId));
+        if (clickedTask) {
+          onEventClick(clickedTask);
+        }
+      }}
     />
   );
 }
 
-export default function CalendarPage() {
+function CalendarPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const action = searchParams.get('action');
+
   const { data: tasks, isLoading } = useTasks();
+  const { openNewTaskModal } = useUIStore();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedDateTasks, setSelectedDateTasks] = useState<{ date: string; tasks: Task[] } | null>(null);
+
+  const handleDateClick = (dateStr: string) => {
+    const matchingTasks = (tasks || []).filter((task) => {
+      return task.deadline.startsWith(dateStr);
+    });
+    setSelectedDateTasks({ date: dateStr, tasks: matchingTasks });
+  };
+
+  useEffect(() => {
+    if (action === 'pomodoro' && tasks && tasks.length > 0) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      handleDateClick(todayStr);
+      toast("Gunakan teknik Pomodoro 25 menit untuk sesi belajar berikutnya.", { icon: '⏱️' });
+
+      // Clear search parameters
+      router.replace(pathname);
+    }
+  }, [action, tasks, router, pathname]);
 
   // Upcoming deadlines (next 7 days)
   const upcomingTasks = useMemo(() => {
@@ -104,7 +157,7 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-6 max-w-[1600px] px-4 md:px-6 lg:px-8">
         <div className="h-8 w-48 bg-white/[0.04] rounded-lg animate-pulse" />
         <SkeletonCard />
       </div>
@@ -112,7 +165,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-[1400px] mx-auto min-w-0">
+    <div className="space-y-6 w-full max-w-[1600px] mx-auto min-w-0 px-4 md:px-6 lg:px-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -127,20 +180,44 @@ export default function CalendarPage() {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {/* Main Grid: 75% calendar, 25% sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full min-w-0 overflow-hidden">
         {/* Calendar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-3"
+          className="lg:col-span-3 min-w-0 w-full overflow-hidden"
         >
           <GlassCard className="p-5" hover={false}>
-            <CalendarWidget tasks={tasks || []} />
+            {(!tasks || tasks.length === 0) ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
+                  <CalendarIcon className="w-8 h-8 text-white/20" />
+                </div>
+                <h3 className="text-lg font-semibold text-white/60 mb-1">Belum ada jadwal</h3>
+                <p className="text-sm text-white/30 mb-5 max-w-xs">
+                  Buat tugas baru dengan tenggat waktu untuk menampilkannya di kalender
+                </p>
+                <Button
+                  glow
+                  icon={<Plus className="w-4 h-4" />}
+                  onClick={() => openNewTaskModal()}
+                >
+                  Add Task
+                </Button>
+              </div>
+            ) : (
+              <CalendarWidget
+                tasks={tasks}
+                onDateClick={handleDateClick}
+                onEventClick={(task) => setSelectedTask(task)}
+              />
+            )}
           </GlassCard>
         </motion.div>
 
-        {/* Sidebar - Upcoming */}
+        {/* Sidebar - Upcoming & Legend */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -157,7 +234,8 @@ export default function CalendarPage() {
                 upcomingTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all"
+                    onClick={() => setSelectedTask(task)}
+                    className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all cursor-pointer"
                   >
                     <h4 className="text-sm text-white font-medium truncate">{task.title}</h4>
                     <div className="flex items-center gap-2 mt-1.5">
@@ -173,7 +251,7 @@ export default function CalendarPage() {
               ) : (
                 <div className="text-center py-6">
                   <CheckCircle2 className="w-8 h-8 text-emerald-400/30 mx-auto mb-2" />
-                  <p className="text-xs text-white/30">No upcoming deadlines</p>
+                  <p className="text-xs text-white/30">Belum ada jadwal</p>
                 </div>
               )}
             </div>
@@ -196,6 +274,100 @@ export default function CalendarPage() {
           </GlassCard>
         </motion.div>
       </div>
+
+      {/* Edit Task Modal */}
+      {selectedTask && (
+        <EditTaskModal
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          task={selectedTask}
+        />
+      )}
+
+      {/* Tasks on Date Modal */}
+      {selectedDateTasks && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedDateTasks(null)} />
+          <div className="relative w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#110e19]/95 backdrop-blur-2xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10">
+            <h3 className="text-lg font-bold text-white font-display mb-4">
+              Tugas untuk tanggal {new Date(selectedDateTasks.date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </h3>
+            
+            <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar mb-5 pr-1">
+              {selectedDateTasks.tasks.length > 0 ? (
+                selectedDateTasks.tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    onClick={() => {
+                      setSelectedTask(task);
+                      setSelectedDateTasks(null);
+                    }}
+                    className="p-3.5 rounded-xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/[0.08] cursor-pointer transition-all hover:scale-[1.01] duration-200"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <h4 className="text-sm font-semibold text-white truncate">{task.title}</h4>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Badge variant={task.priority === 'critical' ? 'danger' : task.priority === 'high' ? 'warning' : task.priority === 'low' ? 'success' : 'default'} size="sm">
+                          {task.priority}
+                        </Badge>
+                        <Badge variant={task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'purple' : task.status === 'overdue' ? 'danger' : 'default'} size="sm">
+                          {task.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <ProgressBar value={task.progress} className="flex-1 mr-3" />
+                      <span className="text-[10px] text-white/40">
+                        Tenggat: {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 bg-white/[0.01] rounded-xl border border-dashed border-white/[0.05]">
+                  <Clock className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                  <p className="text-sm text-white/60 font-semibold font-display">Tidak ada tugas</p>
+                  <p className="text-xs text-white/30 mt-1 font-display">Semua tenggat waktu untuk tanggal ini bersih!</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-white/[0.06]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedDateTasks(null)}
+              >
+                Tutup
+              </Button>
+              <Button
+                glow
+                size="sm"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={() => {
+                  openNewTaskModal(selectedDateTasks.date);
+                  setSelectedDateTasks(null);
+                }}
+              >
+                Tambah Tugas
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6 max-w-[1600px] px-4 md:px-6 lg:px-8">
+        <div className="h-8 w-48 bg-white/[0.04] rounded-lg animate-pulse" />
+        <SkeletonCard />
+      </div>
+    }>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

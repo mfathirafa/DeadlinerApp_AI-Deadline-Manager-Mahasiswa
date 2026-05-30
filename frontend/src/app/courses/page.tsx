@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Plus, Pencil, Trash2, GraduationCap,
   CheckCircle2, FolderOpen,
 } from 'lucide-react';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { useCourses, useCreateCourse, useUpdateCourse, useDeleteCourse } from '@/hooks/useCourses';
 import GlassCard from '@/components/ui/GlassCard';
 import Button from '@/components/ui/Button';
@@ -22,7 +23,13 @@ const presetColors = [
   '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7',
 ];
 
-export default function CoursesPage() {
+function CoursesPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const scroll = searchParams.get('scroll');
+  const highlight = searchParams.get('highlight');
+
   const { data: courses, isLoading } = useCourses();
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
@@ -30,6 +37,10 @@ export default function CoursesPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
+
+  // Highlight state and timeout reference
+  const [highlightActive, setHighlightActive] = useState(false);
+  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -41,6 +52,32 @@ export default function CoursesPage() {
     setCode('');
     setColor('#9f7aea');
   };
+
+  useEffect(() => {
+    if (scroll === 'true' && highlight === 'true' && courses && courses.length > 0) {
+      const element = document.getElementById('course-list');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+      setHighlightActive(true);
+
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightActive(false);
+      }, 4000);
+
+      // Clear query parameters
+      router.replace(pathname);
+    }
+
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, [scroll, highlight, courses, router, pathname]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +113,7 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-[1400px] mx-auto min-w-0">
+    <div className="space-y-6 w-full max-w-[1600px] mx-auto min-w-0 px-4 md:px-6 lg:px-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -103,7 +140,7 @@ export default function CoursesPage() {
       </motion.div>
 
       {/* Course Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div id="course-list" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full min-w-0">
         <AnimatePresence mode="popLayout">
           {courses?.map((course, index) => {
             const totalTasks = course.task_count || 0;
@@ -119,7 +156,14 @@ export default function CoursesPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.05, duration: 0.3 }}
               >
-                <GlassCard className="p-5 h-full" hover>
+                <GlassCard 
+                  className={`p-5 h-full transition-all duration-300 ${
+                    highlightActive 
+                      ? 'ring-2 ring-violet-500/50 border-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.3)] scale-[1.01]' 
+                      : ''
+                  }`} 
+                  hover
+                >
                   {/* Color Accent */}
                   <div
                     className="w-full h-1 rounded-full mb-4"
@@ -196,8 +240,8 @@ export default function CoursesPage() {
           <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
             <GraduationCap className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-lg font-semibold text-white/60 mb-1">No courses yet</h3>
-          <p className="text-sm text-white/30 mb-4">Add your courses to organize tasks by subject</p>
+          <h3 className="text-lg font-semibold text-white/60 mb-1">Belum ada mata kuliah</h3>
+          <p className="text-sm text-white/30 mb-4">Tambahkan mata kuliah Anda untuk mengatur tugas-tugas</p>
           <Button
             glow
             icon={<Plus className="w-4 h-4" />}
@@ -270,5 +314,20 @@ export default function CoursesPage() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6 max-w-[1400px] px-4 md:px-6 lg:px-8 pt-6">
+        <div className="h-8 w-48 bg-white/[0.04] rounded-lg animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      </div>
+    }>
+      <CoursesPageContent />
+    </Suspense>
   );
 }

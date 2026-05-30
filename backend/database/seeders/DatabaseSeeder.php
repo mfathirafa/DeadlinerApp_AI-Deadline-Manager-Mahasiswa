@@ -8,6 +8,7 @@ use App\Models\Task;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,13 +18,20 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Create Demo User
-        $user = User::create([
-            'name' => 'Demo Student',
-            'email' => 'demo@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $user = User::updateOrCreate(
+            ['email' => 'demo@example.com'],
+            [
+                'name' => 'Demo Student',
+                'password' => Hash::make('password'),
+            ]
+        );
 
-        // 2. Create Courses
+        // Delete existing courses & tasks to ensure clean demo state
+        $user->tasks()->delete();
+        $user->courses()->delete();
+        $user->notifications()->delete();
+
+        // 2. Create 5 Courses
         $ml = Course::create([
             'user_id' => $user->id,
             'name' => 'Machine Learning',
@@ -52,96 +60,142 @@ class DatabaseSeeder extends Seeder
             'color' => '#3b82f6',
         ]);
 
-        // 3. Create Tasks with different deadlines and priorities
-
-        // Task 1: Pending, high priority, ML, due in 2 days
-        Task::create([
+        $db = Course::create([
             'user_id' => $user->id,
-            'course_id' => $ml->id,
-            'title' => 'Machine Learning Assignment 1',
-            'description' => 'Complete the gradient descent implementation tasks and report your training loss values.',
-            'deadline' => Carbon::now()->addDays(2)->setHour(23)->setMinute(59)->setSecond(0),
-            'priority' => 'high',
-            'status' => 'pending',
-            'progress' => 0,
-            'ai_analysis' => "💡 **AI Workload Analysis (CS401)**\n• **Urgency**: Due in 2 days. Spreading work over 2 sessions is recommended.\n• **Effort Level**: High workload. Estimated completion time: 4-5 hours.\n• **Study Recommendation**: Complete gradient descent math analysis first, then proceed to implementation.",
+            'name' => 'Database Systems',
+            'code' => 'CS501',
+            'color' => '#22c55e',
         ]);
 
-        // Task 2: In progress, critical priority, SE, due in 5 days
-        Task::create([
-            'user_id' => $user->id,
-            'course_id' => $se->id,
-            'title' => 'Software Engineering Project Milestone 1',
-            'description' => 'Finish the requirement documentation, UML diagram mapping, and entity architecture blueprints.',
-            'deadline' => Carbon::now()->addDays(5)->setHour(12)->setMinute(00)->setSecond(0),
-            'priority' => 'critical',
-            'status' => 'in_progress',
-            'progress' => 40,
-            'ai_analysis' => "💡 **AI Workload Analysis (CS402)**\n• **Urgency**: Due in 5 days. You have a comfortable window.\n• **Effort Level**: Critical workload! Requires deep team coordination.\n• **Study Recommendation**: Focus on finalizing the entity model today and write API resource mappings tomorrow.",
+        $courses = [$ml, $se, $hci, $cn, $db];
+
+        // 3. Create 20 Tasks
+        // We need 10 Completed tasks, distributed over the last 7 days:
+        // Today: 2 completed tasks
+        // 1 day ago: 1 completed task
+        // 2 days ago: 2 completed tasks
+        // 3 days ago: 1 completed task
+        // 4 days ago: 1 completed task
+        // 5 days ago: 1 completed task
+        // 6 days ago: 2 completed tasks
+        $completedDist = [
+            0 => 2, // Today
+            1 => 1, // 1 day ago
+            2 => 2, // 2 days ago
+            3 => 1, // 3 days ago
+            4 => 1, // 4 days ago
+            5 => 1, // 5 days ago
+            6 => 2, // 6 days ago
+        ];
+
+        $taskIndex = 1;
+
+        foreach ($completedDist as $daysAgo => $count) {
+            for ($k = 0; $k < $count; $k++) {
+                $completedDate = Carbon::now()->subDays($daysAgo);
+                $course = $courses[array_rand($courses)];
+                Task::create([
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                    'title' => "Tugas Selesai {$taskIndex}",
+                    'description' => "Deskripsi untuk tugas selesai nomor {$taskIndex}.",
+                    'deadline' => Carbon::now()->subDays($daysAgo)->addDays(2),
+                    'priority' => ['low', 'medium', 'high', 'critical'][rand(0, 3)],
+                    'status' => 'completed',
+                    'progress' => 100,
+                    'completed_at' => $completedDate,
+                    'created_at' => Carbon::now()->subDays($daysAgo + 5),
+                    'updated_at' => $completedDate,
+                    'ai_analysis' => "💡 **AI Workload Analysis ({$course->code})**\n• **Urgency**: Selesai.\n• **Effort Level**: Ringan.\n• **Study Recommendation**: Tugas telah selesai dengan sukses."
+                ]);
+                $taskIndex++;
+            }
+        }
+
+        // We need 6 Pending / In Progress tasks
+        // Due in future (1 to 10 days)
+        for ($i = 0; $i < 6; $i++) {
+            $daysOffset = $i + 2;
+            $course = $courses[$i % count($courses)];
+            $status = $i % 2 === 0 ? 'pending' : 'in_progress';
+            $progress = $status === 'in_progress' ? ($i * 15 + 10) : 0;
+            Task::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'title' => "Tugas Aktif {$taskIndex}",
+                'description' => "Deskripsi untuk tugas aktif nomor {$taskIndex}.",
+                'deadline' => Carbon::now()->addDays($daysOffset)->setHour(23)->setMinute(59),
+                'priority' => ['low', 'medium', 'high', 'critical'][$i % 4],
+                'status' => $status,
+                'progress' => $progress,
+                'created_at' => Carbon::now()->subDays(2),
+                'updated_at' => Carbon::now(),
+                'ai_analysis' => "💡 **AI Workload Analysis ({$course->code})**\n• **Urgency**: Jatuh tempo dalam {$daysOffset} hari.\n• **Effort Level**: Sedang.\n• **Study Recommendation**: Kerjakan dalam blok waktu Pomodoro."
+            ]);
+            $taskIndex++;
+        }
+
+        // We need 4 Overdue tasks
+        // Deadlines in past, status overdue
+        for ($i = 0; $i < 4; $i++) {
+            $daysOffset = $i + 1;
+            $course = $courses[$i % count($courses)];
+            Task::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'title' => "Tugas Terlambat {$taskIndex}",
+                'description' => "Deskripsi untuk tugas terlambat nomor {$taskIndex}.",
+                'deadline' => Carbon::now()->subDays($daysOffset)->setHour(12)->setMinute(0),
+                'priority' => ['high', 'critical'][$i % 2],
+                'status' => 'overdue',
+                'progress' => $i * 10,
+                'created_at' => Carbon::now()->subDays($daysOffset + 4),
+                'updated_at' => Carbon::now(),
+                'ai_analysis' => "💡 **AI Workload Analysis ({$course->code})**\n• **Urgency**: TUGAS SUDAH MELEWATI BATAS WAKTU!\n• **Effort Level**: Tinggi.\n• **Study Recommendation**: Selesaikan segera dan kirimkan ke dosen pengampu."
+            ]);
+            $taskIndex++;
+        }
+
+        // 4. Create Notification data
+        $user->notifications()->create([
+            'id' => Str::uuid(),
+            'type' => 'App\Notifications\TaskDeadlineNotification',
+            'data' => [
+                'type' => 'overdue',
+                'title' => 'Tugas Terlambat!',
+                'message' => 'Tugas Terlambat 17 sudah melewati batas waktu pengumpulan!',
+                'task_id' => 17
+            ],
+            'read_at' => null,
+            'created_at' => now()->subMinutes(10),
+            'updated_at' => now()->subMinutes(10),
         ]);
 
-        // Task 3: Overdue, medium priority, HCI, due 1 day ago
-        Task::create([
-            'user_id' => $user->id,
-            'course_id' => $hci->id,
-            'title' => 'HCI Quiz 1',
-            'description' => 'Complete the online quiz on usability engineering principles and Nielsen heuristics.',
-            'deadline' => Carbon::now()->subDay()->setHour(18)->setMinute(00)->setSecond(0),
-            'priority' => 'medium',
-            'status' => 'overdue',
-            'progress' => 10,
-            'ai_analysis' => "💡 **AI Workload Analysis (CS403)**\n• **Urgency**: Task is past its deadline! Action needed immediately.\n• **Effort Level**: Moderate workload. Estimated time: 1.5 hours.\n• **Study Recommendation**: Revise usability heuristics summary sheets and complete the submission interface immediately.",
+        $user->notifications()->create([
+            'id' => Str::uuid(),
+            'type' => 'App\Notifications\TaskDeadlineNotification',
+            'data' => [
+                'type' => 'deadline_near',
+                'title' => 'Tenggat Waktu Mendekat',
+                'message' => 'Tugas Aktif 11 akan segera jatuh tempo dalam 2 hari.',
+                'task_id' => 11
+            ],
+            'read_at' => null,
+            'created_at' => now()->subHours(1),
+            'updated_at' => now()->subHours(1),
         ]);
 
-        // Task 4: Completed, low priority, CN, completed 4 days ago
-        Task::create([
-            'user_id' => $user->id,
-            'course_id' => $cn->id,
-            'title' => 'Computer Networks Lab 1',
-            'description' => 'Analyze wire packet logs using Wireshark and answer network layer protocol questions.',
-            'deadline' => Carbon::now()->subDays(4)->setHour(23)->setMinute(59)->setSecond(0),
-            'priority' => 'low',
-            'status' => 'completed',
-            'progress' => 100,
-            'ai_analysis' => null,
-            'updated_at' => Carbon::now()->subDays(4), // Set updated_at to SubDays(4) for chart seeding
-        ]);
-
-        // Task 5: Pending, high priority, ML, due in 12 days
-        Task::create([
-            'user_id' => $user->id,
-            'course_id' => $ml->id,
-            'title' => 'Machine Learning Midterm Prep',
-            'description' => 'Revise calculus, linear algebra bases, and classification loss formulas.',
-            'deadline' => Carbon::now()->addDays(12)->setHour(10)->setMinute(00)->setSecond(0),
-            'priority' => 'high',
-            'status' => 'pending',
-            'progress' => 0,
-        ]);
-
-        // Task 6: Completed, medium priority, SE, completed today
-        Task::create([
-            'user_id' => $user->id,
-            'course_id' => $se->id,
-            'title' => 'Software Engineering Presentation Slide Draft',
-            'description' => 'Prepare the slides outline for the project milestones.',
-            'deadline' => Carbon::now()->addDays(8)->setHour(23)->setMinute(59)->setSecond(0),
-            'priority' => 'medium',
-            'status' => 'completed',
-            'progress' => 100,
-            'updated_at' => Carbon::now(), // Seeding completed today
-        ]);
-
-        // Task 7: In progress, low priority, HCI, due in 3 days
-        Task::create([
-            'user_id' => $user->id,
-            'course_id' => $hci->id,
-            'title' => 'HCI Paper Review Draft',
-            'description' => 'Write a 1-page summary review on double-diamond design pattern paper.',
-            'deadline' => Carbon::now()->addDays(3)->setHour(23)->setMinute(59)->setSecond(0),
-            'priority' => 'low',
-            'status' => 'in_progress',
-            'progress' => 50,
+        $user->notifications()->create([
+            'id' => Str::uuid(),
+            'type' => 'App\Notifications\TaskDeadlineNotification',
+            'data' => [
+                'type' => 'recommendation',
+                'title' => 'Saran AI Deadliner',
+                'message' => 'Selesaikan tugas dengan tingkat prioritas critical terlebih dahulu untuk menjaga skor fokus Anda.',
+            ],
+            'read_at' => null,
+            'created_at' => now()->subHours(4),
+            'updated_at' => now()->subHours(4),
         ]);
     }
 }

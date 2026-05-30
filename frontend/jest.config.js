@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({
@@ -9,6 +10,7 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/e2e/'],
   moduleNameMapper: {
     // Handle module aliases (matching tsconfig paths)
     '^@/(.*)$': '<rootDir>/src/$1',

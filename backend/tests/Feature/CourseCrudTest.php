@@ -34,8 +34,8 @@ class CourseCrudTest extends TestCase
         $response = $this->actingAs($user1, 'sanctum')->getJson('/api/courses');
 
         $response->assertStatus(200)
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.name', 'User One Course');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'User One Course');
     }
 
     public function test_user_can_create_course()
@@ -49,7 +49,7 @@ class CourseCrudTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('name', 'New Course');
+            ->assertJsonPath('data.name', 'New Course');
 
         $this->assertDatabaseHas('courses', [
             'name' => 'New Course',
@@ -88,9 +88,9 @@ class CourseCrudTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('name', 'Updated Course Name')
-            ->assertJsonPath('code', 'CS101-UPD')
-            ->assertJsonPath('color', '#000');
+            ->assertJsonPath('data.name', 'Updated Course Name')
+            ->assertJsonPath('data.code', 'CS101-UPD')
+            ->assertJsonPath('data.color', '#000');
     }
 
     public function test_user_can_delete_course()

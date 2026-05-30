@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,12 @@ export interface DashboardData {
     overdue_tasks: number;
     completion_rate: number;
     focus_score: number;
+    risk_score?: number;
+    total_change?: string | null;
+    completed_change?: string | null;
+    pending_change?: string | null;
+    overdue_change?: string | null;
+    current_hour?: number;
   };
   recent_tasks: Task[];
   ai_insights: AIInsight[];
@@ -64,10 +71,12 @@ export interface ProductivityPoint {
 
 export interface Recommendation {
   id: number;
+  type?: 'pomodoro' | 'study_planning' | 'upcoming_deadline' | 'quick_actions';
   title: string;
   description: string;
   action: string;
   priority: 'low' | 'medium' | 'high';
+  icon?: string;
 }
 
 export interface AuthResponse {
@@ -88,7 +97,9 @@ export interface CreateTaskData {
   deadline: string;
 }
 
-export interface UpdateTaskData extends Partial<CreateTaskData> {}
+export interface UpdateTaskData extends Partial<CreateTaskData> {
+  status?: 'pending' | 'in_progress' | 'completed' | 'overdue';
+}
 
 export interface CreateCourseData {
   name: string;
@@ -96,7 +107,7 @@ export interface CreateCourseData {
   color: string;
 }
 
-export interface UpdateCourseData extends Partial<CreateCourseData> {}
+export type UpdateCourseData = Partial<CreateCourseData>;
 
 export interface LoginData {
   email: string;
@@ -105,6 +116,13 @@ export interface LoginData {
 
 export interface RegisterData {
   name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ResetPasswordData {
+  token: string;
   email: string;
   password: string;
   password_confirmation: string;

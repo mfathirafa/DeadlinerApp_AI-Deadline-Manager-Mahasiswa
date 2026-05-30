@@ -7,3 +7,11 @@ export function useDashboard() {
     queryFn: dashboardApi.get,
   });
 }
+
+export function useProductivity() {
+  return useQuery({
+    queryKey: ['dashboard', 'productivity'],
+    queryFn: dashboardApi.getProductivity,
+  });
+}
+

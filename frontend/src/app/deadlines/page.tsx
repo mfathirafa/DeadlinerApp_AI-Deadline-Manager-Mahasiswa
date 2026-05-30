@@ -1,20 +1,24 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, CheckCircle2, Circle, Timer, Sparkles,
-  Filter, SortAsc, SortDesc, Trash2, Brain, ChevronDown, ChevronUp,
-  CalendarClock, Flag, ArrowUpRight,
+  SortAsc, SortDesc, Trash2, Brain, ChevronDown, ChevronUp,
+  CalendarClock, Flag, ArrowUpRight, Plus, Pencil,
 } from 'lucide-react';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
+import { useUIStore } from '@/stores/uiStore';
 import { useTasks, useUpdateTaskStatus, useDeleteTask, useAnalyzeTask } from '@/hooks/useTasks';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { SkeletonCard } from '@/components/ui/Skeleton';
-import { formatDeadline, getDeadlineColor, getPriorityColor, getStatusColor } from '@/lib/utils';
+import { formatDeadline, getDeadlineColor } from '@/lib/utils';
 import { Task } from '@/types';
+import EditTaskModal from '@/components/tasks/EditTaskModal';
 
 const statusFilters = [
   { value: 'all', label: 'All Tasks', icon: Circle },
@@ -26,15 +30,67 @@ const statusFilters = [
 
 const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
 
-export default function DeadlinesPage() {
+function DeadlinesPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const sort = searchParams.get('sort');
+  const highlight = searchParams.get('highlight');
+
   const { data: tasks, isLoading } = useTasks();
+  const { openNewTaskModal } = useUIStore();
   const updateStatus = useUpdateTaskStatus();
   const deleteTask = useDeleteTask();
   const analyzeTask = useAnalyzeTask();
 
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortAsc, setSortAsc] = useState(true);
+  const [isNearestSort, setIsNearestSort] = useState(false);
+  const [highlightActive, setHighlightActive] = useState(false);
+  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [analyzingTaskId, setAnalyzingTaskId] = useState<number | null>(null);
+
+  // Auto-open edit modal if query param is set
+  useEffect(() => {
+    if (typeof window !== 'undefined' && tasks) {
+      const params = new URLSearchParams(window.location.search);
+      const editTaskId = params.get('edit');
+      if (editTaskId) {
+        const task = tasks.find((t) => t.id === parseInt(editTaskId));
+        if (task) {
+          setEditingTask(task);
+        }
+      }
+    }
+  }, [tasks]);
+
+  useEffect(() => {
+    if (sort === 'nearest') {
+      setIsNearestSort(true);
+    }
+    if (highlight === 'urgent' && tasks && tasks.length > 0) {
+      setHighlightActive(true);
+
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightActive(false);
+      }, 4000);
+
+      // Clear search parameters
+      router.replace(pathname);
+    }
+
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, [sort, highlight, tasks, router, pathname]);
 
   const filteredTasks = useMemo(() => {
     let result = tasks || [];
@@ -42,6 +98,9 @@ export default function DeadlinesPage() {
       result = result.filter((t) => t.status === activeFilter);
     }
     return result.sort((a, b) => {
+      if (isNearestSort) {
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      }
       // Sort by priority first, then by deadline
       const pA = priorityOrder[a.priority] ?? 99;
       const pB = priorityOrder[b.priority] ?? 99;
@@ -50,7 +109,7 @@ export default function DeadlinesPage() {
         ? new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
         : new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
     });
-  }, [tasks, activeFilter, sortAsc]);
+  }, [tasks, activeFilter, sortAsc, isNearestSort]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: tasks?.length || 0 };
@@ -82,7 +141,7 @@ export default function DeadlinesPage() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-[1400px] mx-auto min-w-0">
+    <div className="space-y-6 w-full max-w-[1600px] mx-auto min-w-0 px-4 md:px-6 lg:px-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -103,7 +162,10 @@ export default function DeadlinesPage() {
           variant="secondary"
           size="sm"
           icon={sortAsc ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-          onClick={() => setSortAsc(!sortAsc)}
+          onClick={() => {
+            setIsNearestSort(false);
+            setSortAsc(!sortAsc);
+          }}
         >
           {sortAsc ? 'Priority ↑' : 'Priority ↓'}
         </Button>
@@ -143,23 +205,31 @@ export default function DeadlinesPage() {
       </motion.div>
 
       {/* Task Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full min-w-0">
         <AnimatePresence mode="popLayout">
-          {filteredTasks.map((task, index) => (
-            <motion.div
-              key={task.id}
-              layout
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.05, duration: 0.3 }}
-            >
-              <GlassCard
-                className="p-5 cursor-pointer"
-                gradient={task.priority === 'critical'}
-                glow={task.priority === 'critical'}
-                onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+          {filteredTasks.map((task, index) => {
+            const isUrgent = task.priority === 'critical' || task.priority === 'high';
+            const shouldHighlight = highlightActive && isUrgent;
+
+            return (
+              <motion.div
+                key={task.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: index * 0.05, duration: 0.3 }}
               >
+                <GlassCard
+                  className={`p-5 cursor-pointer transition-all duration-300 ${
+                    shouldHighlight 
+                      ? 'ring-2 ring-violet-500/50 border-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.3)] scale-[1.01]' 
+                      : ''
+                  }`}
+                  gradient={task.priority === 'critical'}
+                  glow={task.priority === 'critical'}
+                  onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                >
                 {/* Priority & Status */}
                 <div className="flex items-center justify-between mb-3">
                   <Badge
@@ -231,50 +301,68 @@ export default function DeadlinesPage() {
                         {task.ai_analysis && (
                           <div className="p-3 rounded-xl bg-[#9f7aea]/10 border border-[#9f7aea]/20">
                             <div className="flex items-center gap-1.5 mb-1.5">
-                              <Brain className="w-3.5 h-3.5 text-[#cfbcff]" />
-                              <span className="text-xs font-medium text-[#cfbcff]">AI Analysis</span>
+                               <Brain className="w-3.5 h-3.5 text-[#cfbcff]" />
+                               <span className="text-xs font-medium text-[#cfbcff]">AI Analysis</span>
                             </div>
                             <p className="text-xs text-white/60 leading-relaxed">{task.ai_analysis}</p>
                           </div>
                         )}
-
-                        {/* Actions */}
-                        <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => {
-                              updateStatus.mutate({ id: task.id, status: nextStatus(task.status) });
-                            }}
-                            icon={<ArrowUpRight className="w-3.5 h-3.5" />}
-                          >
-                            → {nextStatus(task.status).replace('_', ' ')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              analyzeTask.mutate(task.id);
-                            }}
-                            icon={<Sparkles className="w-3.5 h-3.5" />}
-                          >
-                            Analyze
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => {
-                              deleteTask.mutate(task.id);
-                            }}
-                            icon={<Trash2 className="w-3.5 h-3.5" />}
-                          >
-                            Delete
-                          </Button>
-                        </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Actions (Always visible) */}
+                <div className="flex gap-2 flex-wrap pt-4 mt-4 border-t border-white/[0.06]" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      updateStatus.mutate({ id: task.id, status: nextStatus(task.status) });
+                    }}
+                    icon={<ArrowUpRight className="w-3.5 h-3.5" />}
+                  >
+                    → {nextStatus(task.status).replace('_', ' ')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingTask(task);
+                    }}
+                    icon={<Pencil className="w-3.5 h-3.5" />}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async () => {
+                      setAnalyzingTaskId(task.id);
+                      try {
+                        await analyzeTask.mutateAsync(task.id);
+                      } catch {
+                        // Handled in hook
+                      } finally {
+                        setAnalyzingTaskId(null);
+                      }
+                    }}
+                    loading={analyzingTaskId === task.id}
+                    icon={<Sparkles className="w-3.5 h-3.5" />}
+                  >
+                    Analyze
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => {
+                      deleteTask.mutate(task.id);
+                    }}
+                    icon={<Trash2 className="w-3.5 h-3.5" />}
+                  >
+                    Delete
+                  </Button>
+                </div>
 
                 {/* Expand indicator */}
                 <div className="flex justify-center mt-2">
@@ -285,7 +373,8 @@ export default function DeadlinesPage() {
                 </div>
               </GlassCard>
             </motion.div>
-          ))}
+            );
+          })}
         </AnimatePresence>
       </div>
 
@@ -299,15 +388,45 @@ export default function DeadlinesPage() {
           <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-lg font-semibold text-white/60 mb-1">No tasks found</h3>
-          <p className="text-sm text-white/30">
+          <h3 className="text-lg font-semibold text-white/60 mb-1">Belum ada tugas</h3>
+          <p className="text-sm text-white/30 mb-4">
             {activeFilter === 'all'
-              ? 'Create a new task to get started'
-              : `No ${activeFilter.replace('_', ' ')} tasks`
+              ? 'Buat tugas baru untuk memulai'
+              : `Tidak ada tugas ${activeFilter.replace('_', ' ')}`
             }
           </p>
+          <Button
+            glow
+            icon={<Plus className="w-4 h-4" />}
+            onClick={() => openNewTaskModal()}
+          >
+            Add Task
+          </Button>
         </motion.div>
       )}
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <EditTaskModal
+          isOpen={!!editingTask}
+          onClose={() => setEditingTask(null)}
+          task={editingTask}
+        />
+      )}
     </div>
+  );
+}
+
+export default function DeadlinesPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6 max-w-[1400px] px-4 md:px-6 lg:px-8 pt-6">
+        <div className="h-8 w-48 bg-white/[0.04] rounded-lg animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      </div>
+    }>
+      <DeadlinesPageContent />
+    </Suspense>
   );
 }

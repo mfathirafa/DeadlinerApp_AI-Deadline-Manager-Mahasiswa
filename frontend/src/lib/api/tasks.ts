@@ -26,7 +26,7 @@ export const tasksApi = {
     return response.data;
   },
 
-  analyze: async (id: number): Promise<{ analysis: string }> => {
+  analyze: async (id: number): Promise<Task> => {
     const response = await api.post(`/tasks/${id}/analyze`);
     return response.data;
   },

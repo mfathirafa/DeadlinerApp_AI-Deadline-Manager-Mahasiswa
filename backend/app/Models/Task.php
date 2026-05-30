@@ -20,13 +20,16 @@ class Task extends Model
         'ai_priority_score',
         'ai_analysis',
         'ai_suggested_start',
+        'completed_at',
     ];
 
     protected $casts = [
-        'user_id'          => 'integer', 
-        'course_id'        => 'integer', 
-        'deadline'         => 'datetime',
+        'user_id'            => 'integer', 
+        'course_id'          => 'integer', 
+        'deadline'           => 'datetime',
         'ai_suggested_start' => 'date',
+        'progress'           => 'integer',
+        'completed_at'       => 'datetime',
     ];
 
     public function user()

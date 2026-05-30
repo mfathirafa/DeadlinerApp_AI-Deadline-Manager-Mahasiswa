@@ -20,7 +20,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock ResizeObserver (required for Recharts ResponsiveContainer to render in Jest)
 global.ResizeObserver = class ResizeObserver {
-  constructor(callback) {}
+  constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}

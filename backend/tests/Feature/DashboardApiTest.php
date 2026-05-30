@@ -47,21 +47,23 @@ class DashboardApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'stats' => [
-                    'total_tasks',
-                    'completed_tasks',
-                    'pending_tasks',
-                    'overdue_tasks',
-                    'completion_rate',
-                    'focus_score',
-                ],
-                'recent_tasks',
-                'ai_insights',
-                'productivity_data',
-                'recommendations',
+                'data' => [
+                    'stats' => [
+                        'total_tasks',
+                        'completed_tasks',
+                        'pending_tasks',
+                        'overdue_tasks',
+                        'completion_rate',
+                        'focus_score',
+                    ],
+                    'recent_tasks',
+                    'ai_insights',
+                    'productivity_data',
+                    'recommendations',
+                ]
             ])
-            ->assertJsonPath('stats.total_tasks', 2)
-            ->assertJsonPath('stats.completed_tasks', 1)
-            ->assertJsonPath('stats.pending_tasks', 1);
+            ->assertJsonPath('data.stats.total_tasks', 2)
+            ->assertJsonPath('data.stats.completed_tasks', 1)
+            ->assertJsonPath('data.stats.pending_tasks', 1);
     }
 }

@@ -1,7 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/lib/api/tasks';
 import { CreateTaskData, UpdateTaskData } from '@/types';
 import toast from 'react-hot-toast';
+
+const invalidateAllQueries = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard', 'productivity'] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard-productivity'] });
+  queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  queryClient.invalidateQueries({ queryKey: ['courses'] });
+  queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
+};
 
 export function useTasks() {
   return useQuery({
@@ -15,12 +26,12 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: (data: CreateTaskData) => tasksApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAllQueries(queryClient);
       toast.success('Task created successfully!');
     },
-    onError: () => {
-      toast.error('Failed to create task');
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to create task';
+      toast.error(message);
     },
   });
 }
@@ -30,12 +41,12 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateTaskData }) => tasksApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAllQueries(queryClient);
       toast.success('Task updated!');
     },
-    onError: () => {
-      toast.error('Failed to update task');
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to update task';
+      toast.error(message);
     },
   });
 }
@@ -45,8 +56,7 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: (id: number) => tasksApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAllQueries(queryClient);
       toast.success('Task deleted!');
     },
     onError: () => {
@@ -60,8 +70,7 @@ export function useUpdateTaskStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => tasksApi.updateStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAllQueries(queryClient);
     },
     onError: () => {
       toast.error('Failed to update status');
@@ -74,7 +83,7 @@ export function useAnalyzeTask() {
   return useMutation({
     mutationFn: (id: number) => tasksApi.analyze(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateAllQueries(queryClient);
       toast.success('AI analysis complete!');
     },
     onError: () => {

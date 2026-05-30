@@ -33,7 +33,7 @@ export default function RootLayout({
         className={`
           ${inter.variable}
           ${jakarta.variable}
-          bg-[#0f0d13]
+          bg-[#0b0b14]
           text-white
           antialiased
         `}

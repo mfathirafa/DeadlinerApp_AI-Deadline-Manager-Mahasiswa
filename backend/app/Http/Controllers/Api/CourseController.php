@@ -21,7 +21,6 @@ class CourseController extends Controller
         return response()->json($course, 201); // ← langsung object
     }
 
-
     public function update(Request $request, Course $course)
     {
         if ($course->user_id != $request->user()->id) {

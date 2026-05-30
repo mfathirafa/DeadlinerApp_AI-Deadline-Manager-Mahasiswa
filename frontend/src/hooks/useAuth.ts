@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/lib/api/auth';
@@ -9,7 +9,7 @@ import { LoginData, RegisterData } from '@/types';
 
 export function useAuth() {
   const router = useRouter();
-  const { user, token, isAuthenticated, isLoading, login: setLogin, logout: setLogout, setUser, setLoading } = useAuthStore();
+  const { user, token, isAuthenticated, isLoading, login: setLogin, logout: setLogout } = useAuthStore();
 
 
   const login = async (data: LoginData) => {

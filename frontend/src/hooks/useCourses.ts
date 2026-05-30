@@ -1,7 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { coursesApi } from '@/lib/api/courses';
 import { CreateCourseData, UpdateCourseData } from '@/types';
 import toast from 'react-hot-toast';
+
+const invalidateAllQueries = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard', 'productivity'] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard-productivity'] });
+  queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  queryClient.invalidateQueries({ queryKey: ['courses'] });
+  queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
+};
 
 export function useCourses() {
   return useQuery({
@@ -15,7 +25,7 @@ export function useCreateCourse() {
   return useMutation({
     mutationFn: (data: CreateCourseData) => coursesApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      invalidateAllQueries(queryClient);
       toast.success('Course created!');
     },
     onError: () => {
@@ -29,7 +39,7 @@ export function useUpdateCourse() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateCourseData }) => coursesApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      invalidateAllQueries(queryClient);
       toast.success('Course updated!');
     },
     onError: () => {
@@ -43,7 +53,7 @@ export function useDeleteCourse() {
   return useMutation({
     mutationFn: (id: number) => coursesApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      invalidateAllQueries(queryClient);
       toast.success('Course deleted!');
     },
     onError: () => {

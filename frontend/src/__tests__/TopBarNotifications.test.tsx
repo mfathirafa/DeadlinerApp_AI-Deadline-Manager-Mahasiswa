@@ -1,12 +1,16 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import TopBar from '../components/layout/TopBar';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/useNotifications';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useTasks } from '@/hooks/useTasks';
+import { useCourses } from '@/hooks/useCourses';
 
 // Mock UI Store
 jest.mock('@/stores/uiStore', () => ({
   useUIStore: () => ({
     toggleSidebar: jest.fn(),
     openNewTaskModal: jest.fn(),
+    setSearchQuery: jest.fn(),
   }),
 }));
 
@@ -17,6 +21,18 @@ jest.mock('@/hooks/useNotifications', () => ({
   useMarkAllNotificationsRead: jest.fn(),
 }));
 
+jest.mock('@/hooks/useDashboard', () => ({
+  useDashboard: jest.fn(),
+}));
+
+jest.mock('@/hooks/useTasks', () => ({
+  useTasks: jest.fn(),
+}));
+
+jest.mock('@/hooks/useCourses', () => ({
+  useCourses: jest.fn(),
+}));
+
 describe('TopBar Notifications Dropdown', () => {
   const mockMarkRead = jest.fn();
   const mockMarkAllRead = jest.fn();
@@ -25,14 +41,17 @@ describe('TopBar Notifications Dropdown', () => {
     jest.clearAllMocks();
     (useMarkNotificationRead as jest.Mock).mockReturnValue({ mutate: mockMarkRead });
     (useMarkAllNotificationsRead as jest.Mock).mockReturnValue({ mutate: mockMarkAllRead });
+    (useDashboard as jest.Mock).mockReturnValue({ data: { ai_insights: [], recommendations: [] } });
+    (useTasks as jest.Mock).mockReturnValue({ data: [] });
+    (useCourses as jest.Mock).mockReturnValue({ data: [] });
   });
 
   it('renders search input and action buttons', () => {
     (useNotifications as jest.Mock).mockReturnValue({ data: [] });
     render(<TopBar />);
 
-    expect(screen.getByPlaceholderText('Search tasks, courses...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /new task/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /buat tugas|new task/i })).toBeInTheDocument();
   });
 
   it('toggles notifications dropdown on bell click', () => {
@@ -51,7 +70,8 @@ describe('TopBar Notifications Dropdown', () => {
     render(<TopBar />);
 
     // Click notification bell
-    const bellBtn = screen.getAllByRole('button')[1]; // Bell is the second button
+    const buttons = screen.getAllByRole('button');
+    const bellBtn = buttons.find(btn => btn.querySelector('.lucide-bell'))!;
     fireEvent.click(bellBtn);
 
     // Assert dropdown displays
@@ -77,7 +97,8 @@ describe('TopBar Notifications Dropdown', () => {
     render(<TopBar />);
 
     // Open dropdown
-    const bellBtn = screen.getAllByRole('button')[1];
+    const buttons = screen.getAllByRole('button');
+    const bellBtn = buttons.find(btn => btn.querySelector('.lucide-bell'))!;
     fireEvent.click(bellBtn);
 
     // Click single notification to mark read

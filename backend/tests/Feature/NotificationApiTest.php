@@ -36,8 +36,8 @@ class NotificationApiTest extends TestCase
         $response = $this->actingAs($user1, 'sanctum')->getJson('/api/notifications');
 
         $response->assertStatus(200)
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.data.task_title', 'User One Task Reminder');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.data.task_title', 'User One Task Reminder');
     }
 
     public function test_user_can_mark_notification_as_read_via_url_param()
@@ -55,7 +55,7 @@ class NotificationApiTest extends TestCase
         $response = $this->actingAs($user, 'sanctum')->postJson("/api/notifications/{$notificationId}/read");
 
         $response->assertStatus(200)
-            ->assertJsonPath('message', 'Notification marked as read.');
+            ->assertJsonPath('data.message', 'Notification marked as read.');
 
         $this->assertNotNull($user->fresh()->notifications()->find($notificationId)->read_at);
     }
@@ -77,7 +77,7 @@ class NotificationApiTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('message', 'Notification marked as read.');
+            ->assertJsonPath('data.message', 'Notification marked as read.');
 
         $this->assertNotNull($user->fresh()->notifications()->find($notificationId)->read_at);
     }
@@ -103,7 +103,7 @@ class NotificationApiTest extends TestCase
         $response = $this->actingAs($user, 'sanctum')->postJson("/api/notifications/read-all");
 
         $response->assertStatus(200)
-            ->assertJsonPath('message', 'All notifications marked as read.');
+            ->assertJsonPath('data.message', 'All notifications marked as read.');
 
         $this->assertEquals(0, $user->fresh()->unreadNotifications()->count());
     }

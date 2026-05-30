@@ -15,5 +15,37 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->validator->errors()->first(),
+                        'errors' => $e->errors(),
+                    ], 422);
+                }
+
+                if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Resource not found.',
+                    ], 404);
+                }
+
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthenticated.',
+                    ], 401);
+                }
+
+                $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+                $message = $e->getMessage() ?: 'Server Error.';
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], $statusCode);
+            }
+        });
     })->create();

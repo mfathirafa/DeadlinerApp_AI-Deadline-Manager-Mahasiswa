@@ -1,9 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { useUIStore } from '@/stores/uiStore';
 import { authApi } from '@/lib/api/auth';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
@@ -22,13 +22,14 @@ const protectedRoutes = [
 const authRoutes = [
   '/login',
   '/register',
+  '/forgot-password',
+  '/reset-password',
 ];
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, token, isAuthenticated, isLoading, setUser, logout: setLogout, setLoading } = useAuthStore();
-  const { sidebarCollapsed } = useUIStore();
+  const { user, isAuthenticated, isLoading, setUser, logout: setLogout, setLoading } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
   // Initialize auth state once on mount
@@ -80,7 +81,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Prevent hydration mismatches and show dynamic spinner initially
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f0d13] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0b0b14] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9f7aea] to-[#cfbcff] animate-pulse flex items-center justify-center">
             <svg className="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
@@ -108,12 +109,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Dashboard layout wrapper
   if (isProtectedRoute) {
     return (
-      <div className="min-h-screen bg-[#0f0d13] flex flex-col">
+      <div className="min-h-screen bg-[#0b0b14] flex flex-col">
         <div className="flex flex-1 min-w-0 relative">
           <Sidebar />
           <div className="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300">
             <TopBar />
-            <main className="flex-1 p-4 md:p-6 lg:p-8 min-w-0 w-full max-w-[1400px] mx-auto">
+            <main className="flex-1 p-4 md:p-6 lg:p-8 min-w-0 w-full max-w-[1600px] mx-auto">
               {children}
             </main>
           </div>
@@ -126,12 +127,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Auth pages (login, register) layout wrapper with animated background
   if (isAuthRoute) {
     return (
-      <div className="min-h-screen bg-[#0f0d13] relative overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#9f7aea]/10 blur-[120px] animate-float" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#cfbcff]/8 blur-[150px] animate-float-delayed" />
-        <div className="absolute top-[40%] left-[60%] w-[300px] h-[300px] rounded-full bg-purple-600/5 blur-[100px] animate-float" />
+      <div className="min-h-screen bg-[#0b0b14] relative overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#9f7aea]/10 blur-[120px] animate-float pointer-events-none z-0" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#cfbcff]/8 blur-[150px] animate-float-delayed pointer-events-none z-0" />
+        <div className="absolute top-[40%] left-[60%] w-[300px] h-[300px] rounded-full bg-purple-600/5 blur-[100px] animate-float pointer-events-none z-0" />
         
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 py-6">
           {children}
         </div>
       </div>

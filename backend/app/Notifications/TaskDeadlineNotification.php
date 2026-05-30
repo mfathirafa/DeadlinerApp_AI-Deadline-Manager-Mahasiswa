@@ -32,7 +32,19 @@ class TaskDeadlineNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $mailUsername = env('MAIL_USERNAME');
+        $mailPassword = env('MAIL_PASSWORD');
+
+        $hasSmtp = !empty($mailUsername) && 
+                   !empty($mailPassword) && 
+                   $mailUsername !== 'email@gmail.com' && 
+                   $mailPassword !== 'APP_PASSWORD_GMAIL' &&
+                   $mailUsername !== 'your-email@gmail.com' &&
+                   $mailPassword !== 'your-gmail-app-password' &&
+                   $mailUsername !== 'null' && 
+                   $mailPassword !== 'null';
+
+        return $hasSmtp ? ['database', 'mail'] : ['database'];
     }
 
     /**

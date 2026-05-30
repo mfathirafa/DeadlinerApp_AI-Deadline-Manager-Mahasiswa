@@ -1,6 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api/notifications';
 import toast from 'react-hot-toast';
+
+const invalidateAllQueries = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard', 'productivity'] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard-productivity'] });
+  queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  queryClient.invalidateQueries({ queryKey: ['courses'] });
+  queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
+};
 
 export function useNotifications() {
   return useQuery({
@@ -15,7 +25,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) => notificationsApi.markRead(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      invalidateAllQueries(queryClient);
     },
   });
 }
@@ -25,7 +35,7 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      invalidateAllQueries(queryClient);
       toast.success('All notifications marked as read');
     },
     onError: () => {
