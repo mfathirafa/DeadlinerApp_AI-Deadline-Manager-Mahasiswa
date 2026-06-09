@@ -317,6 +317,14 @@ class DashboardController extends Controller
             }
         }
 
+        \Illuminate\Support\Facades\Log::info('Dashboard Data for User', [
+            'user_id' => $user->id,
+            'total_tasks' => $totalTasks,
+            'recent_tasks_count' => count($recentTasks),
+            'ai_insights_count' => count($aiInsights),
+            'recommendations_count' => count($recommendations),
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => [

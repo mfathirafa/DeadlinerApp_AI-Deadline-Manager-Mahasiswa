@@ -31,6 +31,8 @@ class DashboardApiTest extends TestCase
             'priority' => 'medium',
             'status' => 'completed',
             'progress' => 100,
+            'estimated_hours' => 2,
+            'difficulty' => 3,
         ]);
 
         Task::create([
@@ -41,6 +43,8 @@ class DashboardApiTest extends TestCase
             'priority' => 'high',
             'status' => 'pending',
             'progress' => 0,
+            'estimated_hours' => 3,
+            'difficulty' => 4,
         ]);
 
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/dashboard');

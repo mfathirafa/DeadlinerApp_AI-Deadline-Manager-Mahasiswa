@@ -30,7 +30,13 @@ export function useCreateTask() {
       toast.success('Task created successfully!');
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to create task';
+      let message = error.response?.data?.message || 'Failed to create task';
+      if (error.response?.data?.errors) {
+        const firstError = Object.values(error.response.data.errors)[0] as string[];
+        if (firstError && firstError.length > 0) {
+          message = firstError[0];
+        }
+      }
       toast.error(message);
     },
   });
@@ -45,7 +51,13 @@ export function useUpdateTask() {
       toast.success('Task updated!');
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to update task';
+      let message = error.response?.data?.message || 'Failed to update task';
+      if (error.response?.data?.errors) {
+        const firstError = Object.values(error.response.data.errors)[0] as string[];
+        if (firstError && firstError.length > 0) {
+          message = firstError[0];
+        }
+      }
       toast.error(message);
     },
   });

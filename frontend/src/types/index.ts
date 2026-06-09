@@ -18,6 +18,8 @@ export interface Task {
   status: 'pending' | 'in_progress' | 'completed' | 'overdue';
   deadline: string;
   progress: number;
+  difficulty: number;
+  estimated_hours: number;
   ai_analysis?: string;
   created_at: string;
   updated_at: string;
@@ -94,6 +96,8 @@ export interface CreateTaskData {
   description: string;
   course_id?: number;
   priority: 'low' | 'medium' | 'high' | 'critical';
+  difficulty: number;
+  estimated_hours: number;
   deadline: string;
 }
 

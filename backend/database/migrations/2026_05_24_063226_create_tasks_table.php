@@ -18,8 +18,6 @@ return new class extends Migration
             $table->string('title');                    // ← ganti name → title
             $table->text('description')->nullable();    // ← tambah
             $table->dateTime('deadline');
-            $table->tinyInteger('difficulty')->default(3);
-            $table->decimal('estimated_hours', 4, 1);
             $table->integer('progress')->default(0);   // ← tambah (0-100)
             $table->enum('status', [
                 'pending',

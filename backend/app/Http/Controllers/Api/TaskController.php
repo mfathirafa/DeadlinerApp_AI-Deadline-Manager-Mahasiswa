@@ -40,19 +40,56 @@ class TaskController extends Controller
 
     public function store(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('Incoming deadline', [
+            'deadline' => $request->deadline
+        ]);
+
+        if ($request->has('deadline')) {
+            try {
+                $deadline = Carbon::parse($request->deadline)->setTimezone(config('app.timezone'));
+                $request->merge([
+                    'deadline' => $deadline->format('Y-m-d H:i:s')
+                ]);
+            } catch (\Exception $e) {
+                //
+            }
+        }
+
         $validated = $request->validate([
             'title'           => 'required|string|max:255',
             'description'     => 'nullable|string',
             'course_id'       => 'nullable|exists:courses,id',
-            'deadline'        => 'required|date|after:now',
+            'deadline'        => ['required', 'date'],
             'difficulty'      => 'required|integer|min:1|max:5',
             'estimated_hours' => 'required|numeric|min:0.5|max:100',
             'priority'        => 'nullable|in:low,medium,high,critical',
         ]);
 
+        $deadlineObj = Carbon::parse($validated['deadline']);
+        $minimumDeadline = now()->addMinute();
+
+        \Illuminate\Support\Facades\Log::info('Deadline validation (store)', [
+            'now' => now()->toDateTimeString(),
+            'minimumDeadline' => $minimumDeadline->toDateTimeString(),
+            'deadlineObj' => $deadlineObj->toDateTimeString(),
+        ]);
+
+        if ($deadlineObj->lessThan($minimumDeadline)) {
+            return response()->json([
+                'message' => 'Please select a deadline at least 1 minute in the future.',
+                'errors' => [
+                    'deadline' => ['Please select a deadline at least 1 minute in the future.']
+                ]
+            ], 422);
+        }
+
         $task = $request->user()->tasks()->create($validated);
 
-        $this->aiService->analyzeTask($task);
+        try {
+            $this->aiService->analyzeTask($task);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('TaskController store error: ' . $e->getMessage());
+        }
         $task->refresh();
 
         return response()->json($task->load('course'), 201); // ← langsung object
@@ -64,17 +101,52 @@ class TaskController extends Controller
             return response()->json(['message' => 'Tidak diizinkan'], 403);
         }
 
+        \Illuminate\Support\Facades\Log::info('Incoming deadline update', [
+            'deadline' => $request->deadline
+        ]);
+
+        if ($request->has('deadline')) {
+            try {
+                $deadline = Carbon::parse($request->deadline)->setTimezone(config('app.timezone'));
+                $request->merge([
+                    'deadline' => $deadline->format('Y-m-d H:i:s')
+                ]);
+            } catch (\Exception $e) {
+                //
+            }
+        }
+
         $validated = $request->validate([
             'title'           => 'sometimes|string|max:255',
             'description'     => 'nullable|string',
             'course_id'       => 'nullable|exists:courses,id',
-            'deadline'        => 'sometimes|date',
+            'deadline'        => ['sometimes', 'date'],
             'difficulty'      => 'sometimes|integer|min:1|max:5',
             'estimated_hours' => 'sometimes|numeric|min:0.5',
             'progress'        => 'sometimes|integer|min:0|max:100',
             'priority'        => 'sometimes|in:low,medium,high,critical',
             'status'          => 'sometimes|in:pending,in_progress,completed,overdue',
         ]);
+
+        if (isset($validated['deadline'])) {
+            $deadlineObj = Carbon::parse($validated['deadline']);
+            $minimumDeadline = now()->addMinute();
+
+            \Illuminate\Support\Facades\Log::info('Deadline validation (update)', [
+                'now' => now()->toDateTimeString(),
+                'minimumDeadline' => $minimumDeadline->toDateTimeString(),
+                'deadlineObj' => $deadlineObj->toDateTimeString(),
+            ]);
+
+            if ($deadlineObj->lessThan($minimumDeadline)) {
+                return response()->json([
+                    'message' => 'Please select a deadline at least 1 minute in the future.',
+                    'errors' => [
+                        'deadline' => ['Please select a deadline at least 1 minute in the future.']
+                    ]
+                ], 422);
+            }
+        }
 
         if (isset($validated['course_id'])) {
             Course::where('user_id', $request->user()->id)->findOrFail($validated['course_id']);
@@ -106,7 +178,11 @@ class TaskController extends Controller
         $task->update($validated);
 
         // Re-analyze setelah update
-        $this->aiService->analyzeTask($task);
+        try {
+            $this->aiService->analyzeTask($task);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('TaskController update error: ' . $e->getMessage());
+        }
         $task->refresh();
 
         return response()->json($task->load('course')); // ← langsung object
@@ -168,7 +244,11 @@ class TaskController extends Controller
             return response()->json(['message' => 'Tidak diizinkan'], 403);
         }
 
-        $this->aiService->analyzeTask($task);
+        try {
+            $this->aiService->analyzeTask($task);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('TaskController analyze error: ' . $e->getMessage());
+        }
         $task->refresh();
 
         return response()->json($task->load('course')); // ← langsung object

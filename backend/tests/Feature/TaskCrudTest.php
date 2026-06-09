@@ -23,7 +23,9 @@ class TaskCrudTest extends TestCase
             'deadline' => now()->addDays(2),
             'priority' => 'high',
             'status' => 'pending',
-            'progress' => 0
+            'progress' => 0,
+            'estimated_hours' => 2,
+            'difficulty' => 3
         ]);
 
         Task::create([
@@ -32,15 +34,17 @@ class TaskCrudTest extends TestCase
             'deadline' => now()->addDays(3),
             'priority' => 'medium',
             'status' => 'pending',
-            'progress' => 0
+            'progress' => 0,
+            'estimated_hours' => 1.5,
+            'difficulty' => 2
         ]);
 
         // Access as User One
         $response = $this->actingAs($user1, 'sanctum')->getJson('/api/tasks');
 
         $response->assertStatus(200)
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.title', 'User One Task');
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.title', 'User One Task');
     }
 
     public function test_user_can_create_task()
@@ -54,10 +58,12 @@ class TaskCrudTest extends TestCase
             'course_id' => $course->id,
             'priority' => 'high',
             'deadline' => now()->addDays(5)->toIso8601String(),
+            'estimated_hours' => 4,
+            'difficulty' => 4,
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.title', 'New Task Title');
+            ->assertJsonPath('title', 'New Task Title');
 
         $this->assertDatabaseHas('tasks', ['title' => 'New Task Title', 'user_id' => $user->id]);
     }
@@ -71,7 +77,9 @@ class TaskCrudTest extends TestCase
             'deadline' => now()->addDays(2),
             'priority' => 'medium',
             'status' => 'pending',
-            'progress' => 10
+            'progress' => 10,
+            'estimated_hours' => 2,
+            'difficulty' => 3
         ]);
 
         $response = $this->actingAs($user, 'sanctum')->putJson("/api/tasks/{$task->id}", [
@@ -81,8 +89,8 @@ class TaskCrudTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.title', 'Updated Title')
-            ->assertJsonPath('data.progress', 50);
+            ->assertJsonPath('title', 'Updated Title')
+            ->assertJsonPath('progress', 50);
     }
 
     public function test_user_can_patch_task_status()
@@ -94,7 +102,9 @@ class TaskCrudTest extends TestCase
             'deadline' => now()->addDays(2),
             'priority' => 'medium',
             'status' => 'pending',
-            'progress' => 0
+            'progress' => 0,
+            'estimated_hours' => 2,
+            'difficulty' => 3
         ]);
 
         $response = $this->actingAs($user, 'sanctum')->patchJson("/api/tasks/{$task->id}/status", [
@@ -102,8 +112,8 @@ class TaskCrudTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.status', 'completed')
-            ->assertJsonPath('data.progress', 100);
+            ->assertJsonPath('status', 'completed')
+            ->assertJsonPath('progress', 100);
     }
 
     public function test_user_can_run_ai_task_analysis()
@@ -115,13 +125,15 @@ class TaskCrudTest extends TestCase
             'deadline' => now()->addDays(2),
             'priority' => 'critical',
             'status' => 'pending',
-            'progress' => 0
+            'progress' => 0,
+            'estimated_hours' => 2,
+            'difficulty' => 3
         ]);
 
         $response = $this->actingAs($user, 'sanctum')->postJson("/api/tasks/{$task->id}/analyze");
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['data' => ['ai_analysis']]);
+            ->assertJsonStructure(['ai_analysis']);
 
         $this->assertDatabaseHas('tasks', ['id' => $task->id]);
         $this->assertNotNull(Task::find($task->id)->ai_analysis);

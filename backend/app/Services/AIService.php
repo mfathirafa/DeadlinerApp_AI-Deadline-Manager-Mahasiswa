@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class AIService
 {
-    private string $apiKey;
-    private string $model;
+    private ?string $apiKey = null;
+    private ?string $model = null;
     private string $apiUrl;
 
     public function __construct()
@@ -17,6 +17,10 @@ class AIService
         $this->apiKey = config('services.groq.key');
         $this->model  = config('services.groq.model');
         $this->apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+
+        if (empty($this->apiKey)) {
+            Log::warning('AI API key missing');
+        }
     }
 
    public function analyzeTask(Task $task): void
@@ -33,8 +37,15 @@ class AIService
                 'ai_suggested_start' => $result['suggested_start'],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('AI analysis failed for task ' . $task->id . ': ' . $e->getMessage());
+            
+            $task->update([
+                'ai_priority_score'  => 50,
+                'priority'           => 'medium',
+                'ai_analysis'        => 'AI service unavailable',
+                'ai_suggested_start' => now()->format('Y-m-d'),
+            ]);
         }
     }
 
@@ -84,6 +95,10 @@ class AIService
 
     private function callGroq(string $prompt): string
     {
+        if (empty($this->apiKey)) {
+            throw new \Exception('AI API key missing. AI service unavailable.');
+        }
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type'  => 'application/json',

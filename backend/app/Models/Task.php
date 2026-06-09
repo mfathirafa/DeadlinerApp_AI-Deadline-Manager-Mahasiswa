@@ -27,6 +27,8 @@ class Task extends Model
         'user_id'            => 'integer', 
         'course_id'          => 'integer', 
         'deadline'           => 'datetime',
+        'difficulty'         => 'integer',
+        'estimated_hours'    => 'float',
         'ai_suggested_start' => 'date',
         'progress'           => 'integer',
         'completed_at'       => 'datetime',

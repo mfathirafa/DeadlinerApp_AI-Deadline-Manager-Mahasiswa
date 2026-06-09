@@ -25,6 +25,8 @@ export default function EditTaskModal({ isOpen, onClose, task }: EditTaskModalPr
   const [description, setDescription] = useState('');
   const [courseId, setCourseId] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [difficulty, setDifficulty] = useState('3');
+  const [estimatedHours, setEstimatedHours] = useState('2');
   const [status, setStatus] = useState('pending');
   const [deadline, setDeadline] = useState('');
 
@@ -35,6 +37,8 @@ export default function EditTaskModal({ isOpen, onClose, task }: EditTaskModalPr
       setDescription(task.description || '');
       setCourseId(task.course_id ? String(task.course_id) : '');
       setPriority(task.priority || 'medium');
+      setDifficulty(task.difficulty ? String(task.difficulty) : '3');
+      setEstimatedHours(task.estimated_hours ? String(task.estimated_hours) : '2');
       setStatus(task.status || 'pending');
       
       // Format deadline date for datetime-local input (YYYY-MM-DDTHH:MM)
@@ -65,8 +69,10 @@ export default function EditTaskModal({ isOpen, onClose, task }: EditTaskModalPr
           description,
           course_id: courseId ? parseInt(courseId) : undefined,
           priority: priority as 'low' | 'medium' | 'high' | 'critical',
+          difficulty: parseInt(difficulty),
+          estimated_hours: parseFloat(estimatedHours),
           status: status as 'pending' | 'in_progress' | 'completed' | 'overdue',
-          deadline,
+          deadline: deadline ? new Date(deadline).toISOString() : '',
         },
       });
       onClose();
@@ -124,7 +130,7 @@ export default function EditTaskModal({ isOpen, onClose, task }: EditTaskModalPr
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select
             label="Course"
             value={courseId}
@@ -136,6 +142,27 @@ export default function EditTaskModal({ isOpen, onClose, task }: EditTaskModalPr
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
             options={priorityOptions}
+          />
+          <Select
+            label="Difficulty"
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            options={[
+              { value: '1', label: '1 - Very Easy' },
+              { value: '2', label: '2 - Easy' },
+              { value: '3', label: '3 - Medium' },
+              { value: '4', label: '4 - Hard' },
+              { value: '5', label: '5 - Very Hard' },
+            ]}
+          />
+          <Input
+            label="Est. Hours"
+            type="number"
+            min="0.5"
+            step="0.5"
+            value={estimatedHours}
+            onChange={(e) => setEstimatedHours(e.target.value)}
+            required
           />
           <Select
             label="Status"

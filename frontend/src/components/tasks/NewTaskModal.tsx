@@ -20,6 +20,8 @@ export default function NewTaskModal() {
   const [description, setDescription] = useState('');
   const [courseId, setCourseId] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [difficulty, setDifficulty] = useState('3');
+  const [estimatedHours, setEstimatedHours] = useState('2');
   const [deadline, setDeadline] = useState('');
 
   useEffect(() => {
@@ -32,7 +34,9 @@ export default function NewTaskModal() {
         setDeadline(`${prefilledDeadline}T09:00`);
       }
     } else if (newTaskModalOpen) {
-      setDeadline('');
+      const pad = (num: number) => String(num).padStart(2, '0');
+      const date = new Date(Date.now() + 60 * 60 * 1000); // 1 hour in the future
+      setDeadline(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`);
     }
   }, [newTaskModalOpen, prefilledDeadline]);
 
@@ -45,7 +49,9 @@ export default function NewTaskModal() {
         description,
         course_id: courseId ? parseInt(courseId) : undefined,
         priority: priority as 'low' | 'medium' | 'high' | 'critical',
-        deadline,
+        difficulty: parseInt(difficulty),
+        estimated_hours: parseFloat(estimatedHours),
+        deadline: deadline ? new Date(deadline).toISOString() : '',
       });
 
       // Reset form
@@ -53,6 +59,8 @@ export default function NewTaskModal() {
       setDescription('');
       setCourseId('');
       setPriority('medium');
+      setDifficulty('3');
+      setEstimatedHours('2');
       setDeadline('');
       closeNewTaskModal();
     } catch (error: any) {
@@ -116,6 +124,27 @@ export default function NewTaskModal() {
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
             options={priorityOptions}
+          />
+          <Select
+            label="Difficulty"
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            options={[
+              { value: '1', label: '1 - Very Easy' },
+              { value: '2', label: '2 - Easy' },
+              { value: '3', label: '3 - Medium' },
+              { value: '4', label: '4 - Hard' },
+              { value: '5', label: '5 - Very Hard' },
+            ]}
+          />
+          <Input
+            label="Est. Hours"
+            type="number"
+            min="0.5"
+            step="0.5"
+            value={estimatedHours}
+            onChange={(e) => setEstimatedHours(e.target.value)}
+            required
           />
         </div>
 
